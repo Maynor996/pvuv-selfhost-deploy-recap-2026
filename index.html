@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv（analytics.momoai.asia）</title>
-<meta name="description" content="把开源 pvuv.ai 自建到 analytics.momoai.asia / in.momoai.asia 的部署复盘。"/>
+<title>自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv</title>
+<meta name="description" content="把开源 pvuv.ai 自建到 analytics.example.com / in.example.com 的部署复盘。"/>
 <style>
 :root { color-scheme: light dark; --bg:#0f1115; --fg:#e8eaed; --muted:#9aa0a6; --card:#1a1d24; --accent:#5b9fff; --border:#2a2f3a; }
 @media (prefers-color-scheme: light) {
@@ -30,10 +30,10 @@ footer { margin-top:3rem; color:var(--muted); font-size:.9em; }
 </head>
 <body>
 <main>
-<h1>自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv（analytics.momoai.asia）</h1>
+<h1>自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv</h1>
 <blockquote>
 <p>开源仓库：<a href="https://github.com/qiayue/pvuv.ai">github.com/qiayue/pvuv.ai</a>（MIT）<br />
-自建控制台：<code>analytics.momoai.asia</code> · 采集端：<code>in.momoai.asia</code> · 埋点脚本：<code>f.js</code><br />
+自建控制台：<code>analytics.example.com</code> · 采集端：<code>in.example.com</code> · 埋点脚本：<code>f.js</code><br />
 部署账号：自有 Cloudflare（QQ 账号侧）· 登录：Google OAuth · 已接入约 76 个站点<br />
 时间：2026-10-31（Asia/Shanghai）</p>
 </blockquote>
@@ -64,12 +64,12 @@ footer { margin-top:3rem; color:var(--muted); font-size:.9em; }
 <h2>2. 架构（对照开源 README，域名换成自家）</h2>
 <p>开源 README 里的链路，我们按自有域名落成了这样：</p>
 <pre><code>浏览器 (f.js)
-  → in.momoai.asia   ingest Worker：校验 + 服务端补全 + 实时打分
+  → in.example.com   ingest Worker：校验 + 服务端补全 + 实时打分
   → Cloudflare Queue
   → consumer Worker：批量写 D1 events，更新 sessions / 画像
   → Cron（按小时）  rollup 预聚合
   → Cron（按天）    群体分析 → 改判 + KV 黑名单
-  analytics.momoai.asia   控制台（看板、流量质量、CWV、广告防护）
+  analytics.example.com   控制台（看板、流量质量、CWV、广告防护）
 </code></pre>
 <p>技术栈与上游一致：<strong>Workers</strong>（ingest / consumer / api / console / cron）· <strong>D1</strong>（按月分表事件）· <strong>Queues</strong>（削峰）· <strong>KV</strong>（黑名单与配置缓存）· Cron Triggers。无外部数据库。</p>
 <p>域名职责也按上游「暴露子域 / 内部子域」思路拆开：</p>
@@ -83,11 +83,11 @@ footer { margin-top:3rem; color:var(--muted); font-size:.9em; }
 <tbody>
 <tr>
 <td>控制台</td>
-<td><code>analytics.momoai.asia</code></td>
+<td><code>analytics.example.com</code></td>
 </tr>
 <tr>
 <td>采集 / 判定</td>
-<td><code>in.momoai.asia</code></td>
+<td><code>in.example.com</code></td>
 </tr>
 <tr>
 <td>埋点</td>
@@ -95,7 +95,7 @@ footer { margin-top:3rem; color:var(--muted); font-size:.9em; }
 </tr>
 </tbody>
 </table>
-<p>自部署时，站点嵌入代码里的 <strong><code>data-api</code> 必须写成 <code>https://in.momoai.asia</code></strong>。SDK 内置默认值仍是参考域名，不改就会把数据打到别人家。</p>
+<p>自部署时，站点嵌入代码里的 <strong><code>data-api</code> 必须写成 <code>https://in.example.com</code></strong>。SDK 内置默认值仍是参考域名，不改就会把数据打到别人家。</p>
 <p>控制台侧我们日常用到的能力包括：</p>
 <ul>
 <li>「你的站点」网格，<strong>按浏览量（PV）排序</strong>的站点卡，并直接标出真人比例  </li>
@@ -121,13 +121,13 @@ footer { margin-top:3rem; color:var(--muted); font-size:.9em; }
 <li>删掉旧用户行，再对 <code>admin</code> 做 <code>ON CONFLICT(user_id)</code> 的 upsert，更新 email / name。</li>
 </ol>
 <p>部署时还要把 Google OAuth 回调指到：</p>
-<p><code>https://analytics.momoai.asia/api/auth/google/callback</code></p>
+<p><code>https://analytics.example.com/api/auth/google/callback</code></p>
 <p>并把真实可登录邮箱写进控制台 Worker 的 <code>ADMIN_EMAILS</code>（不要把 client secret 写进仓库）。</p>
 <h3>3.2 自检误用错误的 ingest 主机名</h3>
 <p>控制台有「自检」：一边访问自己的页面，一边确认事件是否进库。我们一度把采集端想成类似 <code>in.analytics.…</code> 的拼接——<strong>错</strong>。</p>
 <p>正确采集主机是部署时绑定的：</p>
-<p><strong><code>in.momoai.asia</code></strong></p>
-<p>自检、嵌入代码、<code>data-api</code>、文档里的 ingest 示例，都应对齐这个主机。控制台域名 <code>analytics.momoai.asia</code> 只负责看板与登录，不负责收 beacon。混用会表现为「页面能开、自检永远没数据」。</p>
+<p><strong><code>in.example.com</code></strong></p>
+<p>自检、嵌入代码、<code>data-api</code>、文档里的 ingest 示例，都应对齐这个主机。控制台域名 <code>analytics.example.com</code> 只负责看板与登录，不负责收 beacon。混用会表现为「页面能开、自检永远没数据」。</p>
 <hr />
 <h2>4. 效果</h2>
 <ul>
@@ -153,14 +153,14 @@ footer { margin-top:3rem; color:var(--muted); font-size:.9em; }
 <li>先确认 Cloudflare 域名 DNS 已托管，且 Workers <strong>付费套餐</strong>（Queues 硬依赖）。  </li>
 <li>按上游 <code>DEPLOY.zh-CN.md</code> / <code>npm run setup</code> 拉齐 Worker、D1、KV、Queue 与自定义域。  </li>
 <li>OAuth 回调与 <code>ADMIN_EMAILS</code> 配齐；留意 <code>users.email</code> UNIQUE 与单租户 <code>admin</code> id 的迁移。  </li>
-<li>嵌入与自检一律指向 <strong><code>in.momoai.asia</code></strong>，不要臆造 <code>in.analytics…</code>。  </li>
+<li>嵌入与自检一律指向 <strong><code>in.example.com</code></strong>，不要臆造 <code>in.analytics…</code>。  </li>
 <li>先观察流量质量与广告防护「影子/估算」，再改拦截档位。</li>
 </ol>
 <p>开源地址仍是上游：</p>
 <p>https://github.com/qiayue/pvuv.ai</p>
 <p>（本文不记录任何 token、OAuth client secret、cookie 或账号 ID。）</p>
 <footer>
-<p>开源：<a href="https://github.com/qiayue/pvuv.ai">github.com/qiayue/pvuv.ai</a> · 控制台 <a href="https://analytics.momoai.asia">analytics.momoai.asia</a> · 采集 <a href="https://in.momoai.asia">in.momoai.asia</a></p>
+<p>开源：<a href="https://github.com/qiayue/pvuv.ai">github.com/qiayue/pvuv.ai</a></p>
 </footer>
 </main>
 </body>

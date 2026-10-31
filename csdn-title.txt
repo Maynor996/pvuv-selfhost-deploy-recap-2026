@@ -1,1 +1,1 @@
-自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv（analytics.momoai.asia）
+自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv

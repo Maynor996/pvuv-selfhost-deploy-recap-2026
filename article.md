@@ -1,7 +1,7 @@
-# 自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv（analytics.momoai.asia）
+# 自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv
 
 > 开源仓库：[github.com/qiayue/pvuv.ai](https://github.com/qiayue/pvuv.ai)（MIT）  
-> 自建控制台：`analytics.momoai.asia` · 采集端：`in.momoai.asia` · 埋点脚本：`f.js`  
+> 自建控制台：`analytics.example.com` · 采集端：`in.example.com` · 埋点脚本：`f.js`  
 > 部署账号：自有 Cloudflare（QQ 账号侧）· 登录：Google OAuth · 已接入约 76 个站点  
 > 时间：2026-10-31（Asia/Shanghai）
 
@@ -35,12 +35,12 @@
 
 ```
 浏览器 (f.js)
-  → in.momoai.asia   ingest Worker：校验 + 服务端补全 + 实时打分
+  → in.example.com   ingest Worker：校验 + 服务端补全 + 实时打分
   → Cloudflare Queue
   → consumer Worker：批量写 D1 events，更新 sessions / 画像
   → Cron（按小时）  rollup 预聚合
   → Cron（按天）    群体分析 → 改判 + KV 黑名单
-  analytics.momoai.asia   控制台（看板、流量质量、CWV、广告防护）
+  analytics.example.com   控制台（看板、流量质量、CWV、广告防护）
 ```
 
 技术栈与上游一致：**Workers**（ingest / consumer / api / console / cron）· **D1**（按月分表事件）· **Queues**（削峰）· **KV**（黑名单与配置缓存）· Cron Triggers。无外部数据库。
@@ -49,11 +49,11 @@
 
 | 角色 | 我们的域名 |
 |------|------------|
-| 控制台 | `analytics.momoai.asia` |
-| 采集 / 判定 | `in.momoai.asia` |
+| 控制台 | `analytics.example.com` |
+| 采集 / 判定 | `in.example.com` |
 | 埋点 | `f.js`（由控制台/静态资源下发；嵌入时 `data-api` 必须指向自家 ingest） |
 
-自部署时，站点嵌入代码里的 **`data-api` 必须写成 `https://in.momoai.asia`**。SDK 内置默认值仍是参考域名，不改就会把数据打到别人家。
+自部署时，站点嵌入代码里的 **`data-api` 必须写成 `https://in.example.com`**。SDK 内置默认值仍是参考域名，不改就会把数据打到别人家。
 
 控制台侧我们日常用到的能力包括：
 
@@ -86,7 +86,7 @@
 
 部署时还要把 Google OAuth 回调指到：
 
-`https://analytics.momoai.asia/api/auth/google/callback`
+`https://analytics.example.com/api/auth/google/callback`
 
 并把真实可登录邮箱写进控制台 Worker 的 `ADMIN_EMAILS`（不要把 client secret 写进仓库）。
 
@@ -96,9 +96,9 @@
 
 正确采集主机是部署时绑定的：
 
-**`in.momoai.asia`**
+**`in.example.com`**
 
-自检、嵌入代码、`data-api`、文档里的 ingest 示例，都应对齐这个主机。控制台域名 `analytics.momoai.asia` 只负责看板与登录，不负责收 beacon。混用会表现为「页面能开、自检永远没数据」。
+自检、嵌入代码、`data-api`、文档里的 ingest 示例，都应对齐这个主机。控制台域名 `analytics.example.com` 只负责看板与登录，不负责收 beacon。混用会表现为「页面能开、自检永远没数据」。
 
 ---
 
@@ -138,7 +138,7 @@
 1. 先确认 Cloudflare 域名 DNS 已托管，且 Workers **付费套餐**（Queues 硬依赖）。  
 2. 按上游 `DEPLOY.zh-CN.md` / `npm run setup` 拉齐 Worker、D1、KV、Queue 与自定义域。  
 3. OAuth 回调与 `ADMIN_EMAILS` 配齐；留意 `users.email` UNIQUE 与单租户 `admin` id 的迁移。  
-4. 嵌入与自检一律指向 **`in.momoai.asia`**，不要臆造 `in.analytics…`。  
+4. 嵌入与自检一律指向 **`in.example.com`**，不要臆造 `in.analytics…`。  
 5. 先观察流量质量与广告防护「影子/估算」，再改拦截档位。
 
 开源地址仍是上游：

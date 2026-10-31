@@ -26,7 +26,7 @@
 | 仓库 | https://github.com/Maynor996/pvuv-selfhost-deploy-recap-2026 |
 | Pages | https://maynor996.github.io/pvuv-selfhost-deploy-recap-2026/ |
 | About homepage | Pages URL |
-| About description | 自建 pvuv 流量分析部署复盘 · analytics.momoai.asia · 开源 qiayue/pvuv.ai |
+| About description | 自建 pvuv 流量分析部署复盘 · analytics.example.com · 开源 qiayue/pvuv.ai |
 | 源 | `main` + `/` |
 
 Pages 已确认 HTTP 200（`/` 与 `/index.html`）；About homepage/description 已设。
@@ -39,18 +39,18 @@ executor **无浏览器**，请父代理用浏览器登录 CSDN 账号 **xianyu1
 
 | 项 | 内容 |
 | --- | --- |
-| 标题 | 自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv（analytics.momoai.asia） |
+| 标题 | 自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv |
 | 可贴正文 | `/workspace/pvuv-selfhost-deploy-recap-2026/article-csdn.md` |
 | 类型 | **原创** |
 | 可见性 | **全部可见** |
 | 建议标签 | `Cloudflare`,`Workers`,`D1`,`流量统计`,`pvuv`,`Web分析`,`Core Web Vitals`,`反爬` |
 | 建议专栏/分类 | 云计算 / 后端 / 经验分享（以后台可选为准） |
-| 摘要 | 把开源 pvuv.ai 自建到 analytics.momoai.asia / in.momoai.asia 的部署复盘：为何自建、Workers+D1+Queue 架构、Google OAuth 与 users.email UNIQUE 坑、自检误用 ingest 主机名、约 76 站接入与 RemixMeme CWV（LCP ~7.5s→3.15s）旁证。含控制台实机截图。 |
+| 摘要 | 把开源 pvuv.ai 自建到 analytics.example.com / in.example.com 的部署复盘：为何自建、Workers+D1+Queue 架构、Google OAuth 与 users.email UNIQUE 坑、自检误用 ingest 主机名、约 76 站接入与 RemixMeme CWV（LCP ~7.5s→3.15s）旁证。含控制台实机截图。 |
 
 ### 发文注意
 
 - 图片优先用正文内图床 URL（upload.maynor1024.live）；外链转存失败再本地上传 `assets/` 五图
-- 文末 **analytics.momoai.asia / in.momoai.asia / github.com/qiayue/pvuv.ai / momoai.asia** 保持**纯文本**，勿改成 markdown 蓝链
+- 文末 **analytics.example.com / in.example.com / github.com/qiayue/pvuv.ai / example.com** 保持**纯文本**，勿改成 markdown 蓝链
 - 不要写入任何 token、OAuth secret、cookie、wrangler account id
 - 发完核对审核状态，回报文章链接；父代理再回 上站工具3（GitHub Pages + CSDN 两链）
 
@@ -81,4 +81,4 @@ executor **无浏览器**，请父代理用浏览器登录 CSDN 账号 **xianyu1
 
 ## 标题（最终）
 
-**自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv（analytics.momoai.asia）**
+**自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv**
