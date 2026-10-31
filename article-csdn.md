@@ -141,12 +141,6 @@
 4. 嵌入与自检一律指向 **`in.momoai.asia`**，不要臆造 `in.analytics…`。  
 5. 先观察流量质量与广告防护「影子/估算」，再改拦截档位。
 
-开源地址仍是上游：github.com/qiayue/pvuv.ai
-
-我们自己的入口（纯文本）：
-
-- 控制台 analytics.momoai.asia
-- 采集 in.momoai.asia
-- 站点矩阵入口 momoai.asia
+开源上游仍可参考：github.com/qiayue/pvuv.ai
 
 （本文不记录任何 token、OAuth client secret、cookie 或账号 ID。）

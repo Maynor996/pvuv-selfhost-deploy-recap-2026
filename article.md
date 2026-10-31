@@ -145,10 +145,4 @@
 
 https://github.com/qiayue/pvuv.ai
 
-我们自己的入口：
-
-- 控制台 analytics.momoai.asia  
-- 采集 in.momoai.asia  
-- 站点矩阵入口 momoai.asia  
-
 （本文不记录任何 token、OAuth client secret、cookie 或账号 ID。）
