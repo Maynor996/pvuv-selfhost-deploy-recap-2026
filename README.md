@@ -1,5 +1,7 @@
 # 自建流量监控系统部署复盘：pvuv on Cloudflare Workers
 
+**仓库**：[https://github.com/Maynor996/pvuv-selfhost-deploy-recap-2026](https://github.com/Maynor996/pvuv-selfhost-deploy-recap-2026)
+
 中文技术复盘：把开源 [qiayue/pvuv.ai](https://github.com/qiayue/pvuv.ai) 部署到自有域名。
 
 - **控制台**：https://analytics.example.com  

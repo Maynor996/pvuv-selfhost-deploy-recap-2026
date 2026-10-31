@@ -146,3 +146,8 @@
 https://github.com/qiayue/pvuv.ai
 
 （本文不记录任何 token、OAuth client secret、cookie 或账号 ID。）
+
+本文备份仓库：
+
+https://github.com/Maynor996/pvuv-selfhost-deploy-recap-2026
+
