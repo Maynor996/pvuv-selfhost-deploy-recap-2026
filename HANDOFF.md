@@ -1,6 +1,6 @@
 # HANDOFF：pvuv 自建部署复盘 → CSDN
 
-**状态（Asia/Shanghai 2026-10-31）：GitHub Pages 待本文件写就后由 executor 推送确认；CSDN 待父代理浏览器发到 xianyu120（勿重复发）。用户（上站工具3）已授权发文，无需再确认草稿。**
+**状态（Asia/Shanghai 2026-10-31）：GitHub Pages 已上线（HTTP 200）；CSDN 待父代理浏览器发到 xianyu120（勿重复发）。用户（上站工具3）已授权发文，无需再确认草稿。**
 
 ---
 
@@ -29,7 +29,7 @@
 | About description | 自建 pvuv 流量分析部署复盘 · analytics.momoai.asia · 开源 qiayue/pvuv.ai |
 | 源 | `main` + `/` |
 
-（executor 推送后应 HTTP 200；若本表与实况不符以实况为准。）
+Pages 已确认 HTTP 200（`/` 与 `/index.html`）；About homepage/description 已设。
 
 ---
 
