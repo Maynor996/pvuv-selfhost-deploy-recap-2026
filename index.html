@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv（analytics.momoai.asia）</title>
+<meta name="description" content="把开源 pvuv.ai 自建到 analytics.momoai.asia / in.momoai.asia 的部署复盘。"/>
+<style>
+:root { color-scheme: light dark; --bg:#0f1115; --fg:#e8eaed; --muted:#9aa0a6; --card:#1a1d24; --accent:#5b9fff; --border:#2a2f3a; }
+@media (prefers-color-scheme: light) {
+  :root { --bg:#f7f8fa; --fg:#1a1a1a; --muted:#5f6368; --card:#fff; --accent:#1a73e8; --border:#e0e3e8; }
+}
+body { margin:0; font:16px/1.7 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--fg); }
+main { max-width:820px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+h1,h2,h3 { line-height:1.3; }
+a { color:var(--accent); }
+code { background:var(--card); padding:.1em .35em; border-radius:4px; font-size:.92em; }
+pre { background:var(--card); border:1px solid var(--border); padding:1rem; overflow:auto; border-radius:8px; }
+pre code { background:none; padding:0; }
+blockquote { margin:1rem 0; padding:.5rem 1rem; border-left:3px solid var(--accent); color:var(--muted); background:var(--card); }
+table { border-collapse:collapse; width:100%; margin:1rem 0; font-size:.95em; }
+th,td { border:1px solid var(--border); padding:.45rem .6rem; text-align:left; }
+th { background:var(--card); }
+figure { margin:1.5rem 0; }
+img { max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+em { color:var(--muted); font-size:.92em; }
+hr { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+footer { margin-top:3rem; color:var(--muted); font-size:.9em; }
+</style>
+</head>
+<body>
+<main>
+<h1>自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv（analytics.momoai.asia）</h1>
+<blockquote>
+<p>开源仓库：<a href="https://github.com/qiayue/pvuv.ai">github.com/qiayue/pvuv.ai</a>（MIT）<br />
+自建控制台：<code>analytics.momoai.asia</code> · 采集端：<code>in.momoai.asia</code> · 埋点脚本：<code>f.js</code><br />
+部署账号：自有 Cloudflare（QQ 账号侧）· 登录：Google OAuth · 已接入约 76 个站点<br />
+时间：2026-10-31（Asia/Shanghai）</p>
+</blockquote>
+<p>这是一次把开源 <strong>pvuv.ai</strong> 完整自建到自家域名上的部署复盘。目标很简单：流量数据留在自己的 Cloudflare 账号里，同时把「流量质量」和「广告防护」当成一等公民，而不是事后再补一层 bot 过滤。</p>
+<hr />
+<h2>1. 为何自建</h2>
+<p>我们站点矩阵不小，视频梗站、AI 工具站混在一起。如果继续把 PV/UV 交给第三方托管统计，会有几件事长期别扭：</p>
+<ol>
+<li>
+<p><strong>隐私与数据归属</strong><br />
+   访客行为、来源、UTM、会话链路都落在别人的库里。自建后，D1 / KV / Queues 全在自己的 Cloudflare 账号，不经过第三方分析服务。</p>
+</li>
+<li>
+<p><strong>流量质量要当一等公民</strong><br />
+   多数自托管脚本只「数请求」。真人、可疑、机器人、已识别爬虫搅在一起，看总数很容易自我安慰。pvuv 从设计上就把真实性打分和判定（正常 / 可疑 / 机器人 / 爬虫）做成主面板能力。</p>
+</li>
+<li>
+<p><strong>广告防护</strong><br />
+   靠广告变现的站，无效流量不只是「脏数据」，还可能牵连广告账号。pvuv 可以按档位估算拦截影响，再决定是否只给可信流量注入广告代码（默认 fail-open，误伤收入宁可少拦）。</p>
+</li>
+<li>
+<p><strong>运维模型匹配</strong><br />
+   我们已经在 Cloudflare Workers 上跑站点；再加一套 Workers + D1 的统计，不需要自建机房或外部数据库。</p>
+</li>
+</ol>
+<p>托管版 <a href="https://pvuv.ai">pvuv.ai</a> 也很好用；我们选自建，主要是为了数据和策略都捏在自己手里。</p>
+<hr />
+<h2>2. 架构（对照开源 README，域名换成自家）</h2>
+<p>开源 README 里的链路，我们按自有域名落成了这样：</p>
+<pre><code>浏览器 (f.js)
+  → in.momoai.asia   ingest Worker：校验 + 服务端补全 + 实时打分
+  → Cloudflare Queue
+  → consumer Worker：批量写 D1 events，更新 sessions / 画像
+  → Cron（按小时）  rollup 预聚合
+  → Cron（按天）    群体分析 → 改判 + KV 黑名单
+  analytics.momoai.asia   控制台（看板、流量质量、CWV、广告防护）
+</code></pre>
+<p>技术栈与上游一致：<strong>Workers</strong>（ingest / consumer / api / console / cron）· <strong>D1</strong>（按月分表事件）· <strong>Queues</strong>（削峰）· <strong>KV</strong>（黑名单与配置缓存）· Cron Triggers。无外部数据库。</p>
+<p>域名职责也按上游「暴露子域 / 内部子域」思路拆开：</p>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>我们的域名</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>控制台</td>
+<td><code>analytics.momoai.asia</code></td>
+</tr>
+<tr>
+<td>采集 / 判定</td>
+<td><code>in.momoai.asia</code></td>
+</tr>
+<tr>
+<td>埋点</td>
+<td><code>f.js</code>（由控制台/静态资源下发；嵌入时 <code>data-api</code> 必须指向自家 ingest）</td>
+</tr>
+</tbody>
+</table>
+<p>自部署时，站点嵌入代码里的 <strong><code>data-api</code> 必须写成 <code>https://in.momoai.asia</code></strong>。SDK 内置默认值仍是参考域名，不改就会把数据打到别人家。</p>
+<p>控制台侧我们日常用到的能力包括：</p>
+<ul>
+<li>「你的站点」网格，<strong>按浏览量（PV）排序</strong>的站点卡，并直接标出真人比例  </li>
+<li><strong>浅色 / 深色</strong>主题切换  </li>
+<li>单站概览（访客、会话、浏览量、跳出、真人占比、异常色带）  </li>
+<li><strong>Core Web Vitals（CWV）</strong>：LCP / INP / CLS / FCP / TTFB 的 p75  </li>
+<li><strong>流量质量</strong>环图 + <strong>广告防护拦截档位</strong>表（平衡 / 激进 / 最严格）</li>
+</ul>
+<hr />
+<h2>3. 踩坑</h2>
+<h3>3.1 Google OAuth 与 <code>user_id</code> / <code>email</code> UNIQUE</h3>
+<p>控制台是 OAuth-only（我们用的是 Google）。D1 里 <code>users</code> 表大致是：</p>
+<ul>
+<li><code>user_id</code> 主键  </li>
+<li><code>email</code> <strong>UNIQUE</strong></li>
+</ul>
+<p>自建版是<strong>单租户</strong>：所有写在 <code>ADMIN_EMAILS</code> 里的管理员邮箱，登录后都映射到同一个内部 owner id（源码里固定为 <code>admin</code>），共享一份站点列表。</p>
+<p>踩坑现象：如果早期种子数据 / 批处理建用户时，把 <strong>邮箱字符串当成了 <code>user_id</code></strong>，库里会先留下一行「email 既当主键又当 UNIQUE 字段」的记录。之后真正走 OAuth 回调时，逻辑要插入 <code>user_id = admin</code> 且带上同一邮箱——就会撞上 <strong><code>email</code> UNIQUE</strong>，回调直接失败（表现成登录失败 / 服务端 500，具体看 <code>wrangler tail</code>）。</p>
+<p>修法方向（已在开源 <code>resolveUser</code> 里体现，方向如下，勿照抄未核实的临时 SQL）：</p>
+<ol>
+<li>查出「同一邮箱、但 <code>user_id</code> 不是 <code>admin</code>」的旧行；  </li>
+<li>把该旧 id 名下的 <code>sites.owner_id</code>、<code>api_tokens.owner_id</code> 迁到 <code>admin</code>；  </li>
+<li>删掉旧用户行，再对 <code>admin</code> 做 <code>ON CONFLICT(user_id)</code> 的 upsert，更新 email / name。</li>
+</ol>
+<p>部署时还要把 Google OAuth 回调指到：</p>
+<p><code>https://analytics.momoai.asia/api/auth/google/callback</code></p>
+<p>并把真实可登录邮箱写进控制台 Worker 的 <code>ADMIN_EMAILS</code>（不要把 client secret 写进仓库）。</p>
+<h3>3.2 自检误用错误的 ingest 主机名</h3>
+<p>控制台有「自检」：一边访问自己的页面，一边确认事件是否进库。我们一度把采集端想成类似 <code>in.analytics.…</code> 的拼接——<strong>错</strong>。</p>
+<p>正确采集主机是部署时绑定的：</p>
+<p><strong><code>in.momoai.asia</code></strong></p>
+<p>自检、嵌入代码、<code>data-api</code>、文档里的 ingest 示例，都应对齐这个主机。控制台域名 <code>analytics.momoai.asia</code> 只负责看板与登录，不负责收 beacon。混用会表现为「页面能开、自检永远没数据」。</p>
+<hr />
+<h2>4. 效果</h2>
+<ul>
+<li><strong>接入规模</strong>：站点注册表与控制台侧约 <strong>76</strong> 个站点已嵌入。  </li>
+<li><strong>站点卡</strong>：按 PV 排列，卡上直接看会话数与真人比例，矩阵一眼可扫。  </li>
+<li><strong>流量质量</strong>：例如 RemixMeme 某一窗口下，正常 / 可疑 / 机器人 / 爬虫可以拆开看；拦截档位表会估算「平衡 / 激进 / 最严格」各自会挡掉多少浏览量、以及预计误伤上限。  </li>
+<li><strong>CWV 旁证（RemixMeme）</strong>：干净流量上的 LCP p75 从早期约 <strong>7.5s 量级（截图里曾见 7.74s，标「较差」）</strong> 收敛到约 <strong>3.15s（需改进）</strong>——统计系统本身不「优化」页面，但 CWV 面板让我们能用同一套自建数据盯性能，而不是另开一套第三方 RUM。</li>
+</ul>
+<p>下面五张图都是控制台实机截图（深色主题；浅色模式控制台已支持，本篇未另截）。</p>
+<figure><img alt="RemixMeme：CWV（LCP p75=3.15s 需改进）+ 流量质量环图（正常11 / 可疑26 / 机器人3 / 爬虫76）+ 拦截档位表" src="https://upload.maynor1024.live/file/1793436245685_01-remixmeme-cwv-quality-tiers.png" /></figure>
+<p><em>图 1 · RemixMeme 核心网页指标与流量质量：LCP p75 3.15s；质量环为正常 11 / 可疑 26 / 机器人 3 / 已验证爬虫 76；下方为平衡 / 激进 / 最严格三档拦截估算（当时广告防护模式为关闭）。</em></p>
+<figure><img alt="时间筛选「最近 7 天」与站点卡上的真人比例" src="https://upload.maynor1024.live/file/1793436240187_02-time-filter-site-cards.png" /></figure>
+<p><em>图 2 · 顶部时间筛选（滚动：最近 24 小时 / 今天 / 最近 7 天…）；站点卡片段可见 RemixMeme 等卡的会话数与「真人%」标签。</em></p>
+<figure><img alt="「你的站点」网格按浏览量排列" src="https://upload.maynor1024.live/file/1793436246632_03-sites-grid-by-pv.png" /></figure>
+<p><em>图 3 · 「你的站点」网格：FindAIForMe、RemixMeme 等按浏览量排序，卡上同时展示访客 / 会话与真人比例。</em></p>
+<figure><img alt="FindAIForMe 单站概览：无效流量占比告警" src="https://upload.maynor1024.live/file/1793436243965_04-findaiforme-overview-alert.png" /></figure>
+<p><em>图 4 · FindAIForMe 单站概览：顶部黄色告警「无效流量占比过高」（示例窗口内机器人/可疑约占 43.1%，告警线 30%）；KPI 含真人占比、跳出率与浏览量时序上的异常色带。</em></p>
+<figure><img alt="RemixMeme 早期 CWV：LCP p75 约 7.74s（较差）" src="https://upload.maynor1024.live/file/1793436247773_05-remixmeme-cwv-before.png" /></figure>
+<p><em>图 5 · RemixMeme 较早窗口的 CWV：LCP p75 7.74s、FCP 7.52s 标「较差」（样本较少）；可与图 1 的 3.15s 对照，作为性能收敛的旁证。</em></p>
+<hr />
+<h2>5. 小结与可复用清单</h2>
+<ol>
+<li>先确认 Cloudflare 域名 DNS 已托管，且 Workers <strong>付费套餐</strong>（Queues 硬依赖）。  </li>
+<li>按上游 <code>DEPLOY.zh-CN.md</code> / <code>npm run setup</code> 拉齐 Worker、D1、KV、Queue 与自定义域。  </li>
+<li>OAuth 回调与 <code>ADMIN_EMAILS</code> 配齐；留意 <code>users.email</code> UNIQUE 与单租户 <code>admin</code> id 的迁移。  </li>
+<li>嵌入与自检一律指向 <strong><code>in.momoai.asia</code></strong>，不要臆造 <code>in.analytics…</code>。  </li>
+<li>先观察流量质量与广告防护「影子/估算」，再改拦截档位。</li>
+</ol>
+<p>开源地址仍是上游：</p>
+<p>https://github.com/qiayue/pvuv.ai</p>
+<p>我们自己的入口：</p>
+<ul>
+<li>控制台 analytics.momoai.asia  </li>
+<li>采集 in.momoai.asia  </li>
+<li>站点矩阵入口 momoai.asia  </li>
+</ul>
+<p>（本文不记录任何 token、OAuth client secret、cookie 或账号 ID。）</p>
+<footer>
+<p>开源：<a href="https://github.com/qiayue/pvuv.ai">github.com/qiayue/pvuv.ai</a> · 控制台 <a href="https://analytics.momoai.asia">analytics.momoai.asia</a> · 采集 <a href="https://in.momoai.asia">in.momoai.asia</a></p>
+</footer>
+</main>
+</body>
+</html>

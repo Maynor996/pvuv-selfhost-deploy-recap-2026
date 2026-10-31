@@ -1,0 +1,10 @@
+平台: CSDN
+账号: xianyu120
+类型: 原创
+可见性: 全部可见
+标题: 自建流量监控系统部署复盘：Cloudflare Workers 上的 pvuv（analytics.momoai.asia）
+标签: Cloudflare,Workers,D1,流量统计,pvuv,Web分析,Core Web Vitals,反爬
+建议专栏/分类: 云计算 / 后端 / 经验分享（以后台可选为准）
+摘要: 把开源 pvuv.ai 自建到 analytics.momoai.asia / in.momoai.asia 的部署复盘：为何自建、Workers+D1+Queue 架构、Google OAuth 与 users.email UNIQUE 坑、自检误用 ingest 主机名、约 76 站接入与 RemixMeme CWV（LCP ~7.5s→3.15s）旁证。含控制台实机截图。
+正文文件: article-csdn.md
+图床优先；失败时用 assets/ 本地五图
