@@ -45,7 +45,7 @@ executor **无浏览器**，请父代理用浏览器登录 CSDN 账号 **xianyu1
 | 可见性 | **全部可见** |
 | 建议标签 | `Cloudflare`,`Workers`,`D1`,`流量统计`,`pvuv`,`Web分析`,`Core Web Vitals`,`反爬` |
 | 建议专栏/分类 | 云计算 / 后端 / 经验分享（以后台可选为准） |
-| 摘要 | 把开源 pvuv.ai 自建到 analytics.example.com / in.example.com 的部署复盘：为何自建、Workers+D1+Queue 架构、Google OAuth 与 users.email UNIQUE 坑、自检误用 ingest 主机名、约 76 站接入与 RemixMeme CWV（LCP ~7.5s→3.15s）旁证。含控制台实机截图。 |
+| 摘要 | 把开源 pvuv.ai 自建到 analytics.example.com / in.example.com 的部署复盘：为何自建、Workers+D1+Queue 架构、Google OAuth 与 users.email UNIQUE 坑、自检误用 ingest 主机名、约 76 站接入与 站点 A CWV（LCP ~7.5s→3.15s）旁证。含控制台实机截图。 |
 
 ### 发文注意
 
@@ -56,16 +56,16 @@ executor **无浏览器**，请父代理用浏览器登录 CSDN 账号 **xianyu1
 
 ### 图床 URL（5）
 
-1. https://upload.maynor1024.live/file/1793436245685_01-remixmeme-cwv-quality-tiers.png  
+1. https://upload.maynor1024.live/file/1793440519091_01-site-a-cwv-quality-tiers.png  
    （CWV LCP 3.15s + 流量质量环 + 拦截档位）
-2. https://upload.maynor1024.live/file/1793436240187_02-time-filter-site-cards.png  
+2. https://upload.maynor1024.live/file/1793440521163_02-time-filter-site-cards.png  
    （最近 7 天筛选 + 站点卡真人%）
-3. https://upload.maynor1024.live/file/1793436246632_03-sites-grid-by-pv.png  
+3. https://upload.maynor1024.live/file/1793440531493_03-sites-grid-by-pv.png  
    （你的站点网格，按 PV）
-4. https://upload.maynor1024.live/file/1793436243965_04-findaiforme-overview-alert.png  
-   （FindAIForMe 单站概览 + 无效流量告警）
-5. https://upload.maynor1024.live/file/1793436247773_05-remixmeme-cwv-before.png  
-   （RemixMeme 早期 CWV LCP 7.74s）
+4. https://upload.maynor1024.live/file/1793440528620_04-site-b-overview-alert.png  
+   （站点 B 单站概览 + 无效流量告警）
+5. https://upload.maynor1024.live/file/1793440535351_05-site-a-cwv-before.png  
+   （站点 A 早期 CWV LCP 7.74s）
 
 ### 本地 fallback
 
